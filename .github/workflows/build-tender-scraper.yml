@@ -1,0 +1,85 @@
+name: Build DutchTenderScraper.exe
+
+on:
+  push:
+    branches:
+      - claude/build-tender-scraper-exe-C5mpG
+    paths:
+      - 'tender-scraper/**'
+      - '.github/workflows/build-tender-scraper.yml'
+  workflow_dispatch:
+
+permissions:
+  contents: write
+
+jobs:
+  build-windows-exe:
+    runs-on: windows-latest
+    defaults:
+      run:
+        working-directory: tender-scraper
+
+    steps:
+      - name: Checkout
+        uses: actions/checkout@v4
+        with:
+          token: ${{ secrets.GITHUB_TOKEN }}
+          fetch-depth: 0
+
+      - name: Setup Python 3.11
+        uses: actions/setup-python@v5
+        with:
+          python-version: '3.11'
+          cache: 'pip'
+          cache-dependency-path: tender-scraper/requirements.txt
+
+      - name: Install dependencies
+        run: |
+          python -m pip install --upgrade pip
+          pip install -r requirements.txt
+
+      - name: Run PyInstaller
+        run: pyinstaller --clean --noconfirm DutchTenderScraper.spec
+
+      - name: Verify build
+        shell: pwsh
+        run: |
+          $exe = "dist\DutchTenderScraper.exe"
+          if (-not (Test-Path $exe)) { throw "Build did not produce $exe" }
+          $size = (Get-Item $exe).Length
+          $sha = (Get-FileHash -Algorithm SHA256 -Path $exe).Hash
+          Write-Host "Path: $exe"
+          Write-Host "Size: $([math]::Round($size/1MB,2)) MB"
+          Write-Host "SHA256: $sha"
+
+      - name: Upload artifact
+        uses: actions/upload-artifact@v4
+        with:
+          name: DutchTenderScraper-windows
+          path: tender-scraper/dist/DutchTenderScraper.exe
+          if-no-files-found: error
+
+      - name: Commit built .exe back to branch
+        shell: bash
+        working-directory: ${{ github.workspace }}
+        run: |
+          git config user.name "github-actions[bot]"
+          git config user.email "41898282+github-actions[bot]@users.noreply.github.com"
+          git add tender-scraper/dist/DutchTenderScraper.exe
+          if git diff --cached --quiet; then
+            echo "No changes to commit (binary identical)."
+            exit 0
+          fi
+          git commit -m "Build DutchTenderScraper.exe via CI [skip ci]"
+          # Pull with rebase in case the branch moved while CI was running.
+          git pull --rebase origin "${GITHUB_REF_NAME}"
+          for attempt in 1 2 3 4; do
+            if git push origin "HEAD:${GITHUB_REF_NAME}"; then
+              echo "Pushed on attempt $attempt"
+              exit 0
+            fi
+            echo "Push failed (attempt $attempt), retrying..."
+            sleep $((2 ** attempt))
+          done
+          echo "Failed to push after 4 attempts"
+          exit 1
