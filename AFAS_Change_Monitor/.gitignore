@@ -1,0 +1,17 @@
+# Python
+__pycache__/
+*.py[cod]
+*.egg-info/
+.venv/
+.env
+
+# PyInstaller build artefacts
+build/
+dist/
+*.spec
+
+# Runtime outputs (auto-generated, not source)
+data/
+snapshots/
+reports/
+logs/

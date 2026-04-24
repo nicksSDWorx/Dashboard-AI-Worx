@@ -1,0 +1,82 @@
+# AFAS Change Monitor - Configuration
+# ------------------------------------
+# This file lives next to the executable (or in the project root during
+# development) and can be edited without recompiling.
+
+# Starting point of the crawl.
+start_url: "https://www.afas.nl"
+
+# Only URLs whose hostname ends with one of these domains will be crawled.
+allowed_domains:
+  - "afas.nl"
+  - "www.afas.nl"
+
+# Time (HH:MM, 24h) at which the daily scan runs.
+schedule_time: "03:00"
+
+# Identify ourselves politely.
+user_agent: "AFAS-Change-Monitor/1.0"
+
+# Safety limit - hard cap on the number of HTML pages fetched in one run.
+max_pages: 5000
+
+# Network timeout per request (seconds).
+timeout_seconds: 30
+
+# Fallback delay (seconds) between requests if robots.txt has no Crawl-delay.
+default_crawl_delay_seconds: 2
+
+# Maximum number of retries for transient errors (timeouts, 5xx).
+max_retries: 3
+
+# File extensions that will be skipped (case-insensitive) when following links.
+skip_extensions:
+  - ".pdf"
+  - ".zip"
+  - ".rar"
+  - ".7z"
+  - ".tar"
+  - ".gz"
+  - ".jpg"
+  - ".jpeg"
+  - ".png"
+  - ".gif"
+  - ".svg"
+  - ".webp"
+  - ".ico"
+  - ".mp3"
+  - ".mp4"
+  - ".mov"
+  - ".avi"
+  - ".wmv"
+  - ".doc"
+  - ".docx"
+  - ".xls"
+  - ".xlsx"
+  - ".ppt"
+  - ".pptx"
+  - ".css"
+  - ".js"
+  - ".woff"
+  - ".woff2"
+  - ".ttf"
+  - ".eot"
+
+# Regex patterns that match dynamic / ever-changing fragments which must be
+# normalised out BEFORE diffing. Each pattern is applied to both text and HTML.
+# Patterns are Python regular expressions (re.IGNORECASE).
+ignore_patterns:
+  # CSRF and session tokens
+  - 'csrf[_-]?token["\s:=]+[A-Za-z0-9+/=_-]{8,}'
+  - 'session[_-]?id["\s:=]+[A-Za-z0-9+/=_-]{8,}'
+  - 'nonce["\s:=]+[A-Za-z0-9+/=_-]{8,}'
+  # Common timestamps in HTML / JSON
+  - '\b\d{4}-\d{2}-\d{2}T\d{2}:\d{2}:\d{2}(?:\.\d+)?(?:Z|[+-]\d{2}:?\d{2})?\b'
+  - '\b\d{2}[-/]\d{2}[-/]\d{4}\s+\d{2}:\d{2}(?::\d{2})?\b'
+  # Cache-busting query strings like ?v=12345 or ?_=1698765432
+  - '[?&](?:v|_|ts|cb|t|rev)=\d+'
+  # Script/style integrity hashes
+  - 'integrity="sha\d+-[A-Za-z0-9+/=]+"'
+  # Build identifiers
+  - 'data-build(?:-id)?="[^"]+"'
+  - 'build[_-]?id["\s:=]+[A-Za-z0-9._-]+'
