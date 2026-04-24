@@ -58,17 +58,42 @@ DutchTenderScraper.exe [--days N] [--output path.xlsx] [--verbose]
 Dubbelklik op de .exe opent een console, voert de zoekopdracht uit, toont het
 aantal gevonden resultaten en wacht op Enter voor sluiten.
 
-## Bouwen (Windows)
+## Een .exe verkrijgen
 
-Vereist: Python 3.11+ op PATH, PowerShell.
+Er zijn drie manieren; kies wat het handigst is.
+
+### Optie 1 (aanbevolen, geen installatie nodig): download van GitHub Actions
+
+Elke push naar deze branch draait automatisch een Windows-build op GitHub.
+De `.exe` wordt teruggecommit naar `tender-scraper/dist/DutchTenderScraper.exe`
+en is ook als "Artifact" te downloaden op de Actions-pagina:
+`https://github.com/nicksSDWorx/Dashboard-AI-Worx/actions`.
+
+Je hoeft dan zelf niets te bouwen - trek gewoon de nieuwste versie van de
+branch en de .exe staat er.
+
+### Optie 2 (lokaal bouwen, 1 klik): dubbelklik `build.bat`
+
+Vereist alleen Python 3.11+ op PATH. `build.bat` is self-contained: het
+maakt een venv aan, installeert dependencies, draait PyInstaller, toont
+het resultaat en wacht op Enter. Geen PowerShell-policy-gedoe.
+
+Python ontbreekt? `build.bat` vertelt je precies wat je moet doen:
+
+```
+winget install -e --id Python.Python.3.11
+```
+
+of download via `https://www.python.org/downloads/windows/`.
+
+### Optie 3 (lokaal bouwen via PowerShell): `build.ps1`
 
 ```
 .\build.ps1                  # venv + pip install + pyinstaller
 .\build.ps1 -SmokeTest       # idem, plus een test-run van de .exe achteraf
-.\build.bat                  # wrapper als `.ps1` niet direct mag draaien
 ```
 
-Na een succesvolle build vind je de executable in `dist\DutchTenderScraper.exe`
+In alle gevallen: de executable komt in `dist\DutchTenderScraper.exe`
 (verwachte grootte ~15-20 MB).
 
 ## Lokaal draaien zonder .exe
