@@ -4,18 +4,14 @@ Standalone CLI tool die Nederlandse aanbestedingen voor HRM- en payroll-software
 zoekt via officiele, publieke databronnen en de resultaten in een Excel-bestand
 wegschrijft. Geen AI, geen persistent geheugen, geen login vereist.
 
-## Bronnen
+## Bron
 
-| Bron | Type | Rol |
-|---|---|---|
-| TED Europa API v3 (`api.ted.europa.eu`) | JSON | Primaire bron voor EU-drempel Nederlandse aanbestedingen |
-| TenderNed (`papi` + RSS fallback) | JSON / RSS | Nederlandse publieke en semi-publieke tenders |
-| Aanbestedingskalender (`rss`) | RSS | Best-effort aanvullende feed |
+Alleen **TenderNed** (`https://www.tenderned.nl`). De tool bevraagt primair
+het `papi`-endpoint (JSON) dat TenderNed's eigen website intern gebruikt, en
+valt terug op de publieke RSS-feed als het papi-endpoint niet bereikbaar is.
 
-Als een bron niet bereikbaar is of zijn endpoint heeft veranderd, loopt de tool
-gewoon door met de andere bronnen en wordt een waarschuwing gelogd. Het
-TenderNed `papi`-endpoint is ongedocumenteerd en kan instabiel zijn; in dat
-geval valt de tool terug op de RSS-feed.
+Het TenderNed `papi`-endpoint is ongedocumenteerd en kan wijzigen; bij fouten
+valt de tool stil terug op de RSS-feed.
 
 ## Filter-criteria
 
@@ -114,9 +110,8 @@ tools in deze repo (BrokenURLFinder, PDF_Merger_Desktop).
 
 ## Beperkingen
 
-- Geen AI-analyse of natuurtaal-redeneren. Filtering is louter deterministisch.
-- Private-sector buyer-intent signalen (Appwiki, SelectHRM, etc.) zitten
-  **niet** in deze tool; die platformen zijn niet via open API beschikbaar.
+- Alleen TenderNed - geen EU-tenders (TED) of Aanbestedingskalender.
+- Geen AI-analyse. Filtering is louter deterministisch op CPV en keywords.
 - TenderNed `papi`-endpoint is ongedocumenteerd; bij wijzigingen valt de tool
   terug op RSS met een kleinere set velden (geen CPV-codes, geen deadline).
 - Geen persistent geheugen: elke run start blanco.
