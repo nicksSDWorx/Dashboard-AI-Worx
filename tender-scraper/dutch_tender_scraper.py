@@ -3,7 +3,7 @@ from __future__ import annotations
 import argparse
 import os
 import sys
-from datetime import datetime
+from datetime import date, datetime
 from pathlib import Path
 
 from src.config import DEFAULT_DAYS
@@ -15,16 +15,32 @@ from src.scoring import score
 from src.sources import fetch_all_sources
 
 
+def _parse_since(value: str) -> date:
+    try:
+        return datetime.strptime(value, "%Y-%m-%d").date()
+    except ValueError as exc:
+        raise argparse.ArgumentTypeError(
+            f"--since verwacht formaat YYYY-MM-DD, kreeg '{value}'"
+        ) from exc
+
+
 def parse_args() -> argparse.Namespace:
     parser = argparse.ArgumentParser(
         prog="DutchTenderScraper",
-        description="Zoek Nederlandse aanbestedingen voor HRM/payroll software via TED en TenderNed.",
+        description="Zoek Nederlandse aanbestedingen voor HRM/payroll software via TenderNed.",
     )
     parser.add_argument(
         "--days",
         type=int,
         default=DEFAULT_DAYS,
-        help=f"Aantal dagen terug te zoeken (default: {DEFAULT_DAYS})",
+        help=f"Aantal dagen terug te zoeken (default: {DEFAULT_DAYS}). "
+        f"Genegeerd als --since is opgegeven.",
+    )
+    parser.add_argument(
+        "--since",
+        type=_parse_since,
+        default=None,
+        help="Zoek vanaf deze datum (YYYY-MM-DD). Overschrijft --days.",
     )
     parser.add_argument(
         "--output",
@@ -63,10 +79,15 @@ def main() -> int:
 
     output_path = args.output or _default_output_path()
 
-    logger.info("Zoekvenster: laatste %d dagen", args.days)
+    if args.since:
+        days = max(1, (date.today() - args.since).days)
+        logger.info("Zoekvenster: vanaf %s (%d dagen)", args.since.isoformat(), days)
+    else:
+        days = args.days
+        logger.info("Zoekvenster: laatste %d dagen", days)
     logger.info("Output: %s", output_path)
 
-    raw = fetch_all_sources(args.days, logger)
+    raw = fetch_all_sources(days, logger)
     logger.info("Totaal opgehaald (pre-filter): %d", len(raw))
 
     filtered = []

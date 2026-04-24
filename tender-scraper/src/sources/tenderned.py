@@ -103,24 +103,35 @@ def _papi_to_tender(record: Dict[str, Any]) -> Optional[Tender]:
 def _fetch_papi(days: int, logger: logging.Logger) -> List[Tender]:
     since = (datetime.now(timezone.utc).date() - timedelta(days=days)).isoformat()
     session = requests.Session()
-    session.headers.update({"User-Agent": TENDERNED_UA, "Accept": "application/json"})
+    session.headers.update(
+        {
+            "User-Agent": TENDERNED_UA,
+            "Accept": "application/json, text/plain, */*",
+            "Accept-Language": "nl-NL,nl;q=0.9,en;q=0.8",
+            "Referer": "https://www.tenderned.nl/aankondigingen/overzicht",
+        }
+    )
 
     tenders: List[Tender] = []
     for page in range(MAX_PAGES):
+        # Geen publicatieType-filter: keuze 5d haalt alle publicatietypes op
+        # (opdracht, vooraankondiging, gunning, wijziging).
         params = {
             "publicatieDatumVanaf": since,
-            "publicatieType": "AANKONDIGING_VAN_EEN_OPDRACHT",
             "pageSize": PAGE_SIZE,
             "page": page,
         }
         try:
             resp = session.get(TENDERNED_PAPI_URL, params=params, timeout=HTTP_TIMEOUT)
         except requests.RequestException as exc:
-            logger.debug("TenderNed papi network error: %s", exc)
+            logger.warning("TenderNed papi network error on page %d: %s", page, exc)
             raise
         if resp.status_code != 200:
-            logger.debug(
-                "TenderNed papi HTTP %s: %s", resp.status_code, resp.text[:300]
+            logger.warning(
+                "TenderNed papi HTTP %s op page %d: %s",
+                resp.status_code,
+                page,
+                resp.text[:300],
             )
             raise RuntimeError(f"papi HTTP {resp.status_code}")
 
@@ -135,6 +146,12 @@ def _fetch_papi(days: int, logger: logging.Logger) -> List[Tender]:
             or payload.get("items")
             or []
         )
+        logger.debug(
+            "TenderNed papi page=%d records=%d total_so_far=%d",
+            page,
+            len(records),
+            len(tenders) + len(records),
+        )
         if not records:
             break
         for record in records:
@@ -143,6 +160,7 @@ def _fetch_papi(days: int, logger: logging.Logger) -> List[Tender]:
                 tenders.append(tender)
         if len(records) < PAGE_SIZE:
             break
+    logger.info("TenderNed papi: %d publicaties opgehaald", len(tenders))
     return tenders
 
 
@@ -188,6 +206,11 @@ def _fetch_rss(logger: logging.Logger) -> List[Tender]:
         tender = _rss_to_tender(entry)
         if tender:
             tenders.append(tender)
+    logger.info(
+        "TenderNed RSS-fallback gebruikt: %d publicaties (RSS bevat geen CPV-codes, "
+        "dus CPV-filter zal deze overslaan)",
+        len(tenders),
+    )
     return tenders
 
 

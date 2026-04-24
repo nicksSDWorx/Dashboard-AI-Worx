@@ -1,17 +1,25 @@
 from __future__ import annotations
 
-DEFAULT_DAYS = 60
+DEFAULT_DAYS = 120
 HTTP_TIMEOUT = 30
 
+# Inclusie: alle tenders met een van deze CPV-codes wordt meegenomen.
+# Smalle HRM/payroll codes staan bovenaan zodat ze in de score blijven wegen.
 CPV_CODES = [
-    "48450000",
-    "48440000",
-    "48000000",
-    "72260000",
+    "48450000",  # HR/time accounting software
+    "48440000",  # Financial analysis and accounting software
+    "48000000",  # Software package and information systems
+    "72260000",  # Software-related services
+    "72200000",  # Software programming and consultancy
+    "72500000",  # Computer-related services
+    "48200000",  # Networking, internet and intranet software
+    "48300000",  # Document creation, drawing, imaging software
 ]
 
 DIRECT_HIT_CPV_CODES = {"48450000", "48440000"}
 
+# Keywords verhogen alleen de relevance-score; ze zijn niet meer vereist voor
+# inclusie (keuze 3d: CPV-match volstaat).
 KEYWORDS = [
     "HRM",
     "HR software",
@@ -29,6 +37,9 @@ KEYWORDS = [
     "workforce management",
     "HCM",
     "human capital management",
+    "SaaS",
+    "cloud",
+    "cloudoplossing",
 ]
 
 STRONG_KEYWORDS = {

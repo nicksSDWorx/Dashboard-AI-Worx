@@ -37,11 +37,21 @@ def _find_keywords(text: str) -> List[str]:
 
 
 def match_tender(tender: Tender) -> Tuple[bool, List[str], bool]:
-    """Return (is_match, matched_keywords, cpv_hit)."""
+    """Return (is_match, matched_keywords, cpv_hit).
+
+    Inclusie-regel (keuze 3d): tenders met een matchende CPV-code worden
+    meegenomen; keyword-matches verhogen de score maar zijn niet vereist.
+
+    Uitzondering: als een tender helemaal geen CPV-codes meelevert (bv.
+    RSS-fallback), vallen we terug op keyword-match zodat er nog data
+    overblijft. Anders zou een RSS-only run altijd 0 resultaten geven.
+    """
     haystack = " ".join([tender.title or "", tender.scope or ""])
     keywords = _find_keywords(haystack)
     cpv_hit = _cpv_matches(tender.cpv_codes)
-    return (bool(keywords) or cpv_hit, keywords, cpv_hit)
+    has_no_cpv_data = not tender.cpv_codes
+    include = cpv_hit or (has_no_cpv_data and bool(keywords))
+    return (include, keywords, cpv_hit)
 
 
 def keyword_in_title(tender: Tender) -> bool:

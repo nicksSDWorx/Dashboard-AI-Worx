@@ -15,15 +15,25 @@ valt de tool stil terug op de RSS-feed.
 
 ## Filter-criteria
 
-**CPV-codes:** 48450000 (HR-software), 48440000, 48000000, 72260000.
+**CPV-codes (breed):**
+- 48450000 (HR/time accounting) + 48440000 (financial/accounting)
+- 48000000 (software package) + 72260000 (software services)
+- 72200000 (programming) + 72500000 (computer services)
+- 48200000 (networks) + 48300000 (document software)
 
 **Keywords (NL + EN):** HRM, HR software, personeelsinformatiesysteem, HRMS,
 salarisadministratie, salarisverwerkingssoftware, payroll, payrollsoftware,
 personeels- en salarisadministratie, HR systeem, personeelssysteem, e-HRM,
-tijdregistratie, workforce management, HCM, human capital management.
+tijdregistratie, workforce management, HCM, human capital management,
+SaaS, cloud, cloudoplossing.
 
-Een tender wordt meegenomen als **of** een van de CPV-codes matcht **of** er
-minstens een keyword in titel of omschrijving voorkomt.
+**Inclusie-regel:** een tender wordt meegenomen als een van de CPV-codes
+matcht. Keyword-matches zijn **niet vereist** voor inclusie maar verhogen
+de relevance-score. Uitzondering: als een bron (bv. RSS-fallback) geen
+CPV-codes meelevert, valt de tool terug op keyword-match.
+
+**Publicatietypes:** alle types (opdracht-aankondigingen, vooraankondigingen,
+gunningen, wijzigingen) - geen filter op publicatieType.
 
 ## Output
 
@@ -36,20 +46,25 @@ Referentienummer | URL | Matched keywords | Relevance score (1-5)
 ```
 
 Rijen worden gesorteerd op relevance score (hoog naar laag) en daarna op
-publicatiedatum (nieuw naar oud). Duplicaten over TED en TenderNed worden
-samengevoegd op referentienummer; als dat niet beschikbaar is, op (titel,
-aanbestedende dienst, publicatiedatum).
+publicatiedatum (nieuw naar oud).
 
 ## Gebruik
 
 ```
-DutchTenderScraper.exe [--days N] [--output path.xlsx] [--verbose]
+DutchTenderScraper.exe [--days N] [--since YYYY-MM-DD] [--output path.xlsx] [--verbose]
 ```
 
-- `--days N` : aantal dagen terug zoeken (default 60)
+- `--days N` : aantal dagen terug zoeken (default 120)
+- `--since YYYY-MM-DD` : zoek vanaf een exacte datum. Overschrijft `--days`.
 - `--output` : doelpad voor het Excel-bestand (default
   `dutch-tender-scraper_YYYYMMDD_HHMMSS.xlsx` naast de .exe)
-- `--verbose` : DEBUG-logging naar stderr
+- `--verbose` : DEBUG-logging naar stderr (toon per pagina hoeveel binnenkwam)
+
+Voorbeeld: alles vanaf 1 januari 2026:
+
+```
+DutchTenderScraper.exe --since 2026-01-01 --verbose
+```
 
 Dubbelklik op de .exe opent een console, voert de zoekopdracht uit, toont het
 aantal gevonden resultaten en wacht op Enter voor sluiten.
