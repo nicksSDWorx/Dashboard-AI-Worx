@@ -13,7 +13,7 @@ from ..config import (
     TENDERNED_DETAIL_URL_TEMPLATE,
     TENDERNED_PAPI_URL,
     TENDERNED_RSS_URL,
-    USER_AGENT,
+    TENDERNED_UA,
 )
 from ..models import Tender
 
@@ -103,7 +103,7 @@ def _papi_to_tender(record: Dict[str, Any]) -> Optional[Tender]:
 def _fetch_papi(days: int, logger: logging.Logger) -> List[Tender]:
     since = (datetime.now(timezone.utc).date() - timedelta(days=days)).isoformat()
     session = requests.Session()
-    session.headers.update({"User-Agent": USER_AGENT, "Accept": "application/json"})
+    session.headers.update({"User-Agent": TENDERNED_UA, "Accept": "application/json"})
 
     tenders: List[Tender] = []
     for page in range(MAX_PAGES):
@@ -179,7 +179,7 @@ def _rss_to_tender(entry: Any) -> Optional[Tender]:
 def _fetch_rss(logger: logging.Logger) -> List[Tender]:
     feed = feedparser.parse(
         TENDERNED_RSS_URL,
-        request_headers={"User-Agent": USER_AGENT},
+        request_headers={"User-Agent": TENDERNED_UA},
     )
     if getattr(feed, "bozo", 0) and not feed.entries:
         raise RuntimeError(f"RSS parse failure: {getattr(feed, 'bozo_exception', 'unknown')}")

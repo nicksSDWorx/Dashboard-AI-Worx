@@ -28,7 +28,7 @@ FIELDS = [
     "notice-title",
     "buyer-name",
     "publication-date",
-    "deadline-date-lot",
+    "deadline-receipt-request",
     "estimated-value",
     "classification-cpv",
     "description-lot",
@@ -37,15 +37,18 @@ FIELDS = [
 ]
 
 
-def _build_query(days: int, use_legacy: bool) -> str:
+def _build_query(days: int, country_field: str) -> str:
+    """Bouw een TED Expert Search query.
+
+    TED v3 gebruikt de IN-operator met haakjes en spaties voor lijsten.
+    Voor het land-filter proberen we zowel place-of-performance als
+    buyer-country omdat niet iedere notice-type beide velden vult.
+    """
     since = (datetime.now(timezone.utc).date() - timedelta(days=days)).strftime("%Y%m%d")
-    if use_legacy:
-        cpv_expr = " OR ".join(CPV_CODES)
-        return f"PC=[{cpv_expr}] AND CY={COUNTRY_CODE_ISO3} AND PD>={since}"
-    cpv_clauses = " OR ".join(f"classification-cpv={code}" for code in CPV_CODES)
+    cpv_list = " ".join(CPV_CODES)
     return (
-        f"({cpv_clauses}) "
-        f"AND country-ua={COUNTRY_CODE_ISO3} "
+        f"classification-cpv IN ({cpv_list}) "
+        f"AND {country_field} IN ({COUNTRY_CODE_ISO3}) "
         f"AND publication-date>={since}"
     )
 
@@ -188,7 +191,9 @@ def _to_tender(notice: Dict[str, Any]) -> Optional[Tender]:
         return None
     authority = _extract_text(_pick(notice, "buyer-name", "AU"))
     pub_date = _parse_date(_pick(notice, "publication-date", "PD"))
-    deadline = _parse_date(_pick(notice, "deadline-date-lot", "DD", "deadline-date"))
+    deadline = _parse_date(
+        _pick(notice, "deadline-receipt-request", "deadline-date-lot", "DD", "deadline-date")
+    )
     cpv = _parse_cpv(_pick(notice, "classification-cpv", "PC", "cpv"))
     scope = _extract_text(_pick(notice, "description-lot", "description", "DS"))[:5000]
     value = _parse_value(_pick(notice, "estimated-value", "VA"))
@@ -224,31 +229,33 @@ def _fetch_with_url(
     logger: logging.Logger,
 ) -> List[Tender]:
     tenders: List[Tender] = []
-    for page in range(1, MAX_PAGES + 1):
-        body = {
+    iteration_token: Optional[str] = None
+    for page in range(MAX_PAGES):
+        body: Dict[str, Any] = {
             "query": query,
             "fields": FIELDS,
-            "page": page,
             "limit": PAGE_SIZE,
             "scope": "ACTIVE",
             "checkQuerySyntax": False,
-            "paginationMode": "PAGE_NUMBER",
+            "paginationMode": "ITERATION",
         }
+        if iteration_token:
+            body["iterationNextToken"] = iteration_token
         payload = _post_search(url, body, session, logger)
         if payload is None:
-            return tenders if tenders else []
+            return tenders
         notices = payload.get("notices") or payload.get("results") or []
-        if not notices:
-            break
         for notice in notices:
             tender = _to_tender(notice)
             if tender:
                 tenders.append(tender)
-        if len(notices) < PAGE_SIZE:
+        iteration_token = (
+            payload.get("iterationNextToken")
+            or payload.get("nextIterationToken")
+            or payload.get("iteration", {}).get("nextToken")
+        )
+        if not iteration_token or len(notices) < PAGE_SIZE:
             break
-        if payload.get("iteration", {}).get("nextPageToken") is None and not payload.get("hasMore"):
-            if len(notices) < PAGE_SIZE:
-                break
     return tenders
 
 
@@ -262,9 +269,9 @@ def fetch_ted(days: int, logger: logging.Logger) -> List[Tender]:
         }
     )
     for url in (TED_PRIMARY_URL, TED_FALLBACK_URL):
-        for use_legacy in (False, True):
-            query = _build_query(days, use_legacy)
-            logger.debug("TED attempt url=%s legacy=%s", url, use_legacy)
+        for country_field in ("place-of-performance", "buyer-country"):
+            query = _build_query(days, country_field)
+            logger.debug("TED attempt url=%s country-field=%s", url, country_field)
             tenders = _fetch_with_url(url, query, session, logger)
             if tenders:
                 return tenders
