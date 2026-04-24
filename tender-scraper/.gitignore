@@ -1,0 +1,11 @@
+__pycache__/
+*.pyc
+*.pyo
+*.pyd
+build/
+venv/
+.venv/
+*.egg-info/
+.pytest_cache/
+smoke.xlsx
+dutch-tender-scraper_*.xlsx
