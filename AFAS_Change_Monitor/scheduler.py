@@ -143,9 +143,13 @@ class DailyScheduler:
         if self._started:
             return
         hour, minute = _parse_hhmm(self.config.schedule_time)
+        day = _parse_day(self.config.schedule_day)
+        trigger_kwargs = {"hour": hour, "minute": minute}
+        if day is not None:
+            trigger_kwargs["day_of_week"] = day
         self._scheduler.add_job(
             self._safe_run,
-            trigger=CronTrigger(hour=hour, minute=minute),
+            trigger=CronTrigger(**trigger_kwargs),
             id="daily_scan",
             replace_existing=True,
             misfire_grace_time=3600,
@@ -154,7 +158,8 @@ class DailyScheduler:
         )
         self._scheduler.start()
         self._started = True
-        log.info("Daily scan scheduled at %02d:%02d Europe/Amsterdam", hour, minute)
+        cadence = day if day is not None else "every day"
+        log.info("Scan scheduled %s at %02d:%02d Europe/Amsterdam", cadence, hour, minute)
 
     def shutdown(self) -> None:
         if self._started:
@@ -185,3 +190,28 @@ def _parse_hhmm(value: str) -> tuple[int, int]:
     except (ValueError, AttributeError) as exc:
         log.warning("Invalid schedule_time %r, defaulting to 03:00 (%s)", value, exc)
         return 3, 0
+
+
+_DAY_ALIASES = {
+    "monday": "mon", "mon": "mon",
+    "tuesday": "tue", "tue": "tue",
+    "wednesday": "wed", "wed": "wed",
+    "thursday": "thu", "thu": "thu",
+    "friday": "fri", "fri": "fri",
+    "saturday": "sat", "sat": "sat",
+    "sunday": "sun", "sun": "sun",
+}
+
+
+def _parse_day(value: str) -> Optional[str]:
+    """Return APScheduler day-of-week token, or None for daily."""
+    if not value:
+        return None
+    key = value.strip().lower()
+    if key in {"daily", "every", "every-day", "everyday", "*"}:
+        return None
+    short = _DAY_ALIASES.get(key)
+    if short is None:
+        log.warning("Invalid schedule_day %r, defaulting to daily", value)
+        return None
+    return short

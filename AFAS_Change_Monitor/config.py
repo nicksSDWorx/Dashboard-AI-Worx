@@ -24,7 +24,8 @@ CONFIG_FILENAME = "config.yaml"
 class AppConfig:
     start_url: str = "https://www.afas.nl"
     allowed_domains: List[str] = field(default_factory=lambda: ["afas.nl", "www.afas.nl"])
-    schedule_time: str = "03:00"
+    schedule_time: str = "10:00"
+    schedule_day: str = "monday"
     user_agent: str = "AFAS-Change-Monitor/1.0"
     max_pages: int = 5000
     timeout_seconds: int = 30
@@ -88,6 +89,7 @@ def load_config(path: Path | None = None) -> AppConfig:
         start_url=str(data.get("start_url", defaults.start_url)),
         allowed_domains=list(data.get("allowed_domains", defaults.allowed_domains)),
         schedule_time=str(data.get("schedule_time", defaults.schedule_time)),
+        schedule_day=str(data.get("schedule_day", defaults.schedule_day)),
         user_agent=str(data.get("user_agent", defaults.user_agent)),
         max_pages=int(data.get("max_pages", defaults.max_pages)),
         timeout_seconds=int(data.get("timeout_seconds", defaults.timeout_seconds)),

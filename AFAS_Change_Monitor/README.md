@@ -7,7 +7,8 @@ een Excel-bestand + een side-by-side HTML-rapport.
 ## Functionaliteit
 
 - Volledige crawl van afas.nl (alleen interne links, respecteert `robots.txt` en `Crawl-delay`)
-- Dagelijkse automatische run om `03:00` (instelbaar in `config.yaml`)
+- Wekelijkse of dagelijkse automatische run (instelbaar in `config.yaml`, default elke maandag 10:00)
+- Headless modus (`--run-once`) + PowerShell-script om Windows Taakplanner-taak te registreren — draait in de achtergrond zonder dat de app open hoeft te zijn
 - Detectie van **nieuwe**, **verwijderde**, **tekstueel gewijzigde** en **structureel gewijzigde** pagina's
 - Configureerbare regex-ignore-lijst voor dynamische content (timestamps, CSRF, cache-busters, ...)
 - Excel-bestand `afas_monitor_data.xlsx` met 4 sheets: Overzicht, Pagina's, Wijzigingen, Snapshots
@@ -68,6 +69,49 @@ python main.py
 De **Stop scan** knop zet een event dat de crawler netjes aan het einde van de
 huidige pagina afbreekt. Alle tot dan toe opgehaalde pagina's worden nog steeds
 verwerkt en weggeschreven.
+
+## Achtergrond / Taakplanner-modus (aanbevolen)
+
+In plaats van de GUI permanent open te laten staan, kun je de tool via
+Windows Taakplanner als achtergrond-taak laten draaien. Voordelen:
+
+- ✅ App hoeft niet open te zijn
+- ✅ Laptop wordt zo nodig wakker uit slaapstand
+- ✅ Werkt ook als je niet ingelogd bent (mits ingelogd blijft via auto-login)
+- ❌ Werkt **niet** als de laptop volledig is afgesloten (uitgeschakeld)
+
+### Eénmalige setup
+
+```powershell
+# In de AFAS_Change_Monitor folder, in een normale (niet-admin) PowerShell:
+.\register_task.ps1                      # Default: elke maandag 10:00
+.\register_task.ps1 -Day Wednesday -Time "08:30"   # Of een andere dag/tijd
+```
+
+Het script registreert een taak met de naam **AFAS Change Monitor** die
+`python main.py --run-once` draait (of `dist\AFAS Monitor.exe --run-once`
+als je 'm gebouwd hebt). De taak wekt de laptop indien nodig.
+
+### Handmatig triggeren (testen)
+
+```powershell
+Start-ScheduledTask -TaskName "AFAS Change Monitor"
+```
+
+De scan draait dan headless op de achtergrond — output staat in
+`logs/afas_monitor.log`, het rapport in `reports/`.
+
+### Verwijderen
+
+```powershell
+Unregister-ScheduledTask -TaskName "AFAS Change Monitor" -Confirm:$false
+```
+
+### Headless rechtstreeks aanroepen
+
+```powershell
+python main.py --run-once
+```
 
 ## Bouwen naar `.exe`
 

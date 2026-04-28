@@ -302,8 +302,54 @@ class MonitorApp:
         self.root.destroy()
 
 
+def _run_headless(config) -> int:
+    """One-shot scan without GUI - intended for Windows Task Scheduler."""
+    from scheduler import run_once  # local import: avoid pulling Tk into the path
+
+    log_file = logs_dir() / "afas_monitor.log"
+    root_logger = logging.getLogger()
+    root_logger.setLevel(logging.INFO)
+    for h in list(root_logger.handlers):
+        root_logger.removeHandler(h)
+    fmt = logging.Formatter("%(asctime)s %(levelname)s %(name)s: %(message)s")
+    fh = logging.handlers.RotatingFileHandler(
+        log_file, maxBytes=2_000_000, backupCount=5, encoding="utf-8"
+    )
+    fh.setFormatter(fmt)
+    root_logger.addHandler(fh)
+    sh = logging.StreamHandler()
+    sh.setFormatter(fmt)
+    root_logger.addHandler(sh)
+    logging.getLogger("urllib3").setLevel(logging.WARNING)
+    logging.getLogger("apscheduler").setLevel(logging.WARNING)
+
+    log.info("Headless run started")
+    try:
+        result = run_once(config)
+    except Exception:  # noqa: BLE001
+        log.exception("Headless run failed")
+        return 1
+    log.info("Headless run completed: %d pages, %d change(s)",
+             result.pages_scanned, len(result.report.changes))
+    return 0
+
+
 def main() -> int:
+    import argparse
+
+    parser = argparse.ArgumentParser(prog="AFAS Monitor")
+    parser.add_argument(
+        "--run-once",
+        action="store_true",
+        help="Run a single scan without the GUI and exit. "
+             "Use this from Windows Task Scheduler for unattended operation.",
+    )
+    args = parser.parse_args()
+
     config = load_config()
+    if args.run_once:
+        return _run_headless(config)
+
     root = tk.Tk()
     MonitorApp(root, config)
     root.mainloop()

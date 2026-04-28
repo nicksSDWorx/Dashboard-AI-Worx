@@ -11,8 +11,12 @@ allowed_domains:
   - "afas.nl"
   - "www.afas.nl"
 
-# Time (HH:MM, 24h) at which the daily scan runs.
-schedule_time: "03:00"
+# Day of the week to run the scheduled scan.
+# Use "monday".."sunday" for weekly, or "daily" for every day.
+schedule_day: "monday"
+
+# Time (HH:MM, 24h) at which the scheduled scan runs.
+schedule_time: "10:00"
 
 # Identify ourselves politely.
 user_agent: "AFAS-Change-Monitor/1.0"
