@@ -215,8 +215,9 @@ class MonitorApp:
             )
         except Exception as exc:  # noqa: BLE001 - surface in the GUI
             log.exception("Scan mislukt")
+            err_text = str(exc) or exc.__class__.__name__
             self.root.after(0, lambda: self._set_status("Fout", "#991b1b"))
-            self.root.after(0, lambda: messagebox.showerror(APP_TITLE, f"Scan mislukt:\n{exc}"))
+            self.root.after(0, lambda t=err_text: messagebox.showerror(APP_TITLE, f"Scan mislukt:\n{t}"))
         else:
             if result.stopped:
                 self.root.after(0, lambda: self._set_status("Afgebroken", "#92400e"))

@@ -183,6 +183,11 @@ class Storage:
         raw: Dict[str, Tuple[str, str]] = {}
         base = app_base_dir()
         for url, page in pages.items():
+            # Skip rows that were only recorded for their HTTP status (404, etc).
+            # They have no captured content and would otherwise show up as
+            # "Verwijderde pagina" on every subsequent run.
+            if not page.text_hash and not page.structure_hash:
+                continue
             text = ""
             html = ""
             try:
